@@ -9,11 +9,19 @@ async function generateContentWithFailover(
     config?: any;
   }
 ) {
-  // Quota Priority list of models the user has available and free
-  // 1. gemini-2.5-flash (Primary standard, 5 RPM / 20 RPD)
-  // 2. gemini-3.1-flash-lite (Huge quota fallback, 15 RPM / 500 RPD)
-  // 3. gemini-2.5-flash-lite (Tertiary fallback, 10 RPM / 20 RPD)
-  const modelChain = ["gemini-2.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash-lite"];
+  // Quota Priority list of compatible models the user has available and free
+  // 1. gemini-3.5-flash (5 RPM / 20 RPD)
+  // 2. gemini-3.1-flash-lite (15 RPM / 500 RPD)
+  // 3. gemini-3-flash (5 RPM / 20 RPD)
+  // 4. gemini-2.5-flash (5 RPM / 20 RPD)
+  // 5. gemini-2.5-flash-lite (10 RPM / 20 RPD)
+  const modelChain = [
+    "gemini-3.5-flash",
+    "gemini-3.1-flash-lite",
+    "gemini-3-flash",
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+  ];
   
   let lastError = null;
 
