@@ -1,6 +1,56 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 
+// Failover Manager: Tries models in sequence based on quota limits
+async function generateContentWithFailover(
+  ai: any,
+  params: {
+    contents: any;
+    config?: any;
+  }
+) {
+  // Quota Priority list of models the user has available and free
+  // 1. gemini-2.5-flash (Primary standard, 5 RPM / 20 RPD)
+  // 2. gemini-3.1-flash-lite (Huge quota fallback, 15 RPM / 500 RPD)
+  // 3. gemini-2.5-flash-lite (Tertiary fallback, 10 RPM / 20 RPD)
+  const modelChain = ["gemini-2.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash-lite"];
+  
+  let lastError = null;
+
+  for (const model of modelChain) {
+    try {
+      console.log(`[Chain-of-Models] Tentando executar com o modelo: ${model}`);
+      const response = await ai.models.generateContent({
+        model: model,
+        contents: params.contents,
+        config: params.config,
+      });
+      
+      // Return both the response and the model name that succeeded
+      return { response, usedModel: model };
+    } catch (error: any) {
+      lastError = error;
+      const isQuotaError =
+        error.status === 429 ||
+        error.message?.includes("429") ||
+        error.message?.includes("Quota") ||
+        error.message?.includes("Resource has been exhausted") ||
+        error.message?.includes("rate limit");
+
+      if (isQuotaError) {
+        console.warn(`[Failover] Quota excedida ou limite de taxa atingido para o modelo ${model}. Acionando próximo da cadeia...`);
+        continue; // Try next model in loop
+      }
+      
+      // If it's a structural or prompt validation error, fail immediately to prevent infinite loops
+      throw error;
+    }
+  }
+
+  // If we exhausted all options, throw the last error
+  throw lastError || new Error("Todos os modelos na cadeia de failover falharam.");
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -42,9 +92,9 @@ export async function POST(request: NextRequest) {
 
     // --- AGENTE 1: OCR TRANSCRIPTION ---
     let transcript = "";
+    let ocrModelUsed = "";
     try {
-      const ocrResponse = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+      const { response, usedModel } = await generateContentWithFailover(ai, {
         contents: [
           {
             inlineData: {
@@ -65,11 +115,12 @@ Regras de Operação:
 5. Retorne apenas e exclusivamente a transcrição limpa do texto, sem introduções, cumprimentos ou notas explicativas.`,
         },
       });
-      transcript = ocrResponse.text || "";
+      transcript = response.text || "";
+      ocrModelUsed = usedModel;
     } catch (e: any) {
       console.error("Error in Agent 1 (OCR):", e);
       return NextResponse.json(
-        { error: `Falha no Agente 1 (OCR): ${e.message || e}` },
+        { error: `Falha no Agente 1 (OCR) após tentar toda a cadeia de failover: ${e.message || e}` },
         { status: 500 }
       );
     }
@@ -81,9 +132,8 @@ Regras de Operação:
       );
     }
 
-    // --- AGENTE 2 (GRAMÁTICA) & AGENTE 3 (ESTRUTURA) RUN IN PARALLEL ---
-    const agent2Promise = ai.models.generateContent({
-      model: "gemini-2.5-flash",
+    // --- AGENTE 2 (GRAMÁTICA) & AGENTE 3 (ESTRUTURA) RUN IN PARALLEL WITH FAILOVER ---
+    const agent2Promise = generateContentWithFailover(ai, {
       contents: `Analise o seguinte texto transcrito para identificar desvios gramaticais de microestrutura:
 ---
 ${transcript}
@@ -113,8 +163,7 @@ Ao final da sua análise, emita um relatório textual detalhado sob o título "R
       ? topics.map((t, i) => `${i + 1}. ${t}`).join("\n")
       : topics || "Nenhum tópico fornecido";
 
-    const agent3Promise = ai.models.generateContent({
-      model: "gemini-2.5-flash",
+    const agent3Promise = generateContentWithFailover(ai, {
       contents: `Avalie a macroestrutura deste texto com base no tema e tópicos obrigatórios:
 
 Tema da Redação: ${theme || "Não especificado"}
@@ -143,24 +192,31 @@ Emita sua análise textual sob o título "RELATÓRIO ESTRUTURAL E TEMÁTICO".`,
 
     let grammarReport = "";
     let structuralReport = "";
+    let grammarModelUsed = "";
+    let structuralModelUsed = "";
 
     try {
       const [grammarRes, structuralRes] = await Promise.all([
         agent2Promise,
         agent3Promise,
       ]);
-      grammarReport = grammarRes.text || "";
-      structuralReport = structuralRes.text || "";
+      
+      grammarReport = grammarRes.response.text || "";
+      grammarModelUsed = grammarRes.usedModel;
+      
+      structuralReport = structuralRes.response.text || "";
+      structuralModelUsed = structuralRes.usedModel;
     } catch (e: any) {
       console.error("Error in parallel Agents 2 & 3:", e);
       return NextResponse.json(
-        { error: `Falha na execução paralela dos Agentes 2 e 3: ${e.message || e}` },
+        { error: `Falha na execução paralela dos Agentes 2 e 3 após failover: ${e.message || e}` },
         { status: 500 }
       );
     }
 
     // --- AGENTE 4: CONSOLIDATOR AND FORMATTER (JSON) ---
     let consolidatedData = null;
+    let consolidatorModelUsed = "";
     try {
       const consolidatorPrompt = `Você recebeu os relatórios dos agentes especialistas anteriores.
       
@@ -181,8 +237,7 @@ ${structuralReport}
 
 Calcule a nota final usando a fórmula Cebraspe e formate o resultado estritamente em JSON de acordo com o schema.`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+      const { response, usedModel } = await generateContentWithFailover(ai, {
         contents: consolidatorPrompt,
         config: {
           systemInstruction: `Você é o Agente Consolidador de Notas. Sua função é receber os relatórios gerados pelos agentes especialistas anteriores, calcular a nota final do candidato e formatar a saída em um JSON estruturado e válido.
@@ -250,10 +305,11 @@ Você deve produzir estritamente um arquivo JSON que siga a estrutura especifica
 
       const responseText = response.text || "{}";
       consolidatedData = JSON.parse(responseText);
+      consolidatorModelUsed = usedModel;
     } catch (e: any) {
       console.error("Error in Agent 4 (Consolidation):", e);
       return NextResponse.json(
-        { error: `Falha no Agente 4 (Consolidador): ${e.message || e}` },
+        { error: `Falha no Agente 4 (Consolidador) após failover: ${e.message || e}` },
         { status: 500 }
       );
     }
@@ -263,6 +319,12 @@ Você deve produzir estritamente um arquivo JSON que siga a estrutura especifica
       grammarReport,
       structuralReport,
       consolidated: consolidatedData,
+      modelLogs: {
+        ocrAgent: ocrModelUsed,
+        grammarAgent: grammarModelUsed,
+        structuralAgent: structuralModelUsed,
+        consolidatorAgent: consolidatorModelUsed
+      }
     });
   } catch (e: any) {
     console.error("Global endpoint error:", e);
