@@ -168,7 +168,7 @@ Regras de Operação:
     } catch (e: any) {
       console.error("Erro no Agente 1 (OCR):", e);
       return NextResponse.json(
-        { error: `Falha no Agente 1 (OCR) após tentar toda a cadeia de failover: ${e.message || e}` },
+        { error: `${e.message || e}` },
         { status: 500 }
       );
     }
