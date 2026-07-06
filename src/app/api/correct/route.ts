@@ -151,7 +151,7 @@ Regras de Operação:
       transcript = response.text || "";
       ocrModelUsed = usedModel;
     } catch (e: any) {
-      console.error("Error in Agent 1 (OCR):", e);
+      console.error("Erro no Agente 1 (OCR):", e);
       return NextResponse.json(
         { error: `Falha no Agente 1 (OCR) após tentar toda a cadeia de failover: ${e.message || e}` },
         { status: 500 }
@@ -240,7 +240,7 @@ Emita sua análise textual sob o título "RELATÓRIO ESTRUTURAL E TEMÁTICO".`,
       structuralReport = structuralRes.response.text || "";
       structuralModelUsed = structuralRes.usedModel;
     } catch (e: any) {
-      console.error("Error in parallel Agents 2 & 3:", e);
+      console.error("Erro nos Agentes paralelos 2 e 3:", e);
       return NextResponse.json(
         { error: `Falha na execução paralela dos Agentes 2 e 3 após failover: ${e.message || e}` },
         { status: 500 }
@@ -340,7 +340,7 @@ Você deve produzir estritamente um arquivo JSON que siga a estrutura especifica
       consolidatedData = JSON.parse(responseText);
       consolidatorModelUsed = usedModel;
     } catch (e: any) {
-      console.error("Error in Agent 4 (Consolidation):", e);
+      console.error("Erro no Agente 4 (Consolidação):", e);
       return NextResponse.json(
         { error: `Falha no Agente 4 (Consolidador) após failover: ${e.message || e}` },
         { status: 500 }
@@ -360,7 +360,7 @@ Você deve produzir estritamente um arquivo JSON que siga a estrutura especifica
       }
     });
   } catch (e: any) {
-    console.error("Global endpoint error:", e);
+    console.error("Erro global no endpoint:", e);
     return NextResponse.json(
       { error: `Erro interno no servidor: ${e.message || e}` },
       { status: 500 }
