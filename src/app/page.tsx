@@ -623,7 +623,7 @@ export default function Home() {
                       </span>
                     </div>
                     <span className="agent-step-desc">
-                      Orquestração resiliente (iniciando em <code>gemini-3.5-flash</code>). Analisa o arquivo de imagem e extrai a
+                      Modelo: <code>gemini-3.5-flash</code> (principal). Analisa o arquivo de imagem e extrai a
                       transcrição exata da caligrafia mantendo os desvios.
                     </span>
                   </div>
@@ -641,7 +641,7 @@ export default function Home() {
                       </span>
                     </div>
                     <span className="agent-step-desc">
-                      Orquestração resiliente (iniciando em <code>gemini-3.5-flash</code>). Dois agentes paralelos mapeiam erros
+                      Modelos: <code>gemini-3.5-flash</code> (principais). Dois agentes paralelos mapeiam erros
                       gramaticais (microestrutura) e analisam a qualidade do conteúdo (macroestrutura).
                     </span>
                   </div>
@@ -659,7 +659,7 @@ export default function Home() {
                       </span>
                     </div>
                     <span className="agent-step-desc">
-                      Orquestração resiliente (iniciando em <code>gemini-3.5-flash</code> com Saída JSON). Recebe todos os relatórios
+                      Modelo: <code>gemini-3.5-flash</code> (principal - Saída JSON). Recebe todos os relatórios
                       anteriores, calcula a nota Cebraspe final e estrutura o JSON.
                     </span>
                   </div>
@@ -793,7 +793,7 @@ export default function Home() {
                       marginTop: "1.5rem"
                     }}
                   >
-                    <span>🤖 <strong>Modelos Resolvidos no Failover:</strong></span>
+                    <span>🤖 <strong>Modelos de Inteligência Artificial Utilizados:</strong></span>
                     <span>OCR: <code>{result.modelLogs.ocrAgent}</code></span>
                     <span>Gramática: <code>{result.modelLogs.grammarAgent}</code></span>
                     <span>Estrutura: <code>{result.modelLogs.structuralAgent}</code></span>
