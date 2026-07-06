@@ -28,10 +28,18 @@ async function generateContentWithFailover(
   for (const model of modelChain) {
     try {
       console.log(`[Chain-of-Models] Tentando executar com o modelo: ${model}`);
+      
+      // Configura um timeout de 12 segundos para a requisição de rede do SDK
       const response = await ai.models.generateContent({
         model: model,
         contents: params.contents,
-        config: params.config,
+        config: {
+          ...params.config,
+          httpOptions: {
+            ...params.config?.httpOptions,
+            timeout: 12000, // 12 segundos
+          }
+        },
       });
       
       // Return both the response and the model name that succeeded
@@ -56,9 +64,14 @@ async function generateContentWithFailover(
         error.status === 429 ||
         error.status === 503 ||
         error.status === 500 ||
+        error.status === 408 || // Request Timeout
         error.message?.includes("429") ||
         error.message?.includes("503") ||
         error.message?.includes("500") ||
+        error.message?.includes("408") ||
+        error.message?.includes("timeout") ||
+        error.message?.includes("Timeout") ||
+        error.message?.includes("deadline") ||
         error.message?.includes("Quota") ||
         error.message?.includes("Resource has been exhausted") ||
         error.message?.includes("rate limit") ||
@@ -68,10 +81,12 @@ async function generateContentWithFailover(
         error.message?.includes("overloaded") ||
         errorStr.includes("UNAVAILABLE") ||
         errorStr.includes("high demand") ||
-        errorStr.includes("temporary");
+        errorStr.includes("temporary") ||
+        errorStr.includes("timeout") ||
+        errorStr.includes("deadline");
 
       if (isTransientError) {
-        console.warn(`[Failover] Erro temporário ou sobrecarga (${error.status || '503'}) no modelo ${model}. Acionando próximo da cadeia...`);
+        console.warn(`[Failover] Erro temporário, timeout ou sobrecarga (${error.status || '503'}) no modelo ${model}. Acionando próximo da cadeia...`);
         continue; // Try next model in loop
       }
       
