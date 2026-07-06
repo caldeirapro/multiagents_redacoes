@@ -452,11 +452,15 @@ export default function Home() {
               value={apiKey}
               onChange={(e) => handleSaveApiKey(e.target.value)}
             />
-            <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
-              Sua chave de API é salva localmente no navegador (localStorage) e usada diretamente
-              nas requisições. Deixe em branco se a variável de ambiente{" "}
-              <b><code>GEMINI_API_KEY</code></b> estiver configurada no servidor.
-            </p>
+            <div style={{ fontSize: "0.82rem", color: "var(--text-muted)", marginTop: "0.6rem", display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+              <span style={{ fontWeight: 600, color: "var(--text)" }}>Como obter sua chave gratuita (em 1 minuto):</span>
+              <ol style={{ paddingLeft: "1.1rem", display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+                <li>Clique no link <strong>"Obter Chave Grátis"</strong> logo acima para abrir o painel.</li>
+                <li>Entre com a sua conta pessoal do Google.</li>
+                <li>Clique no botão azul <strong>"Create API key"</strong> (Criar chave de API) e copie o código gerado.</li>
+                <li>Cole o código copiado no campo de texto acima. (A chave fica gravada apenas no seu navegador).</li>
+              </ol>
+            </div>
           </div>
         </div>
       )}
