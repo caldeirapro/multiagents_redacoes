@@ -52,15 +52,26 @@ async function generateContentWithFailover(
         throw new Error("Chave de API do Gemini inválida. Acesse as configurações (ícone de engrenagem no topo direito) e insira uma chave de API válida (geralmente começando com 'AIzaSy').");
       }
 
-      const isQuotaError =
+      const isTransientError =
         error.status === 429 ||
+        error.status === 503 ||
+        error.status === 500 ||
         error.message?.includes("429") ||
+        error.message?.includes("503") ||
+        error.message?.includes("500") ||
         error.message?.includes("Quota") ||
         error.message?.includes("Resource has been exhausted") ||
-        error.message?.includes("rate limit");
+        error.message?.includes("rate limit") ||
+        error.message?.includes("high demand") ||
+        error.message?.includes("temporary") ||
+        error.message?.includes("UNAVAILABLE") ||
+        error.message?.includes("overloaded") ||
+        errorStr.includes("UNAVAILABLE") ||
+        errorStr.includes("high demand") ||
+        errorStr.includes("temporary");
 
-      if (isQuotaError) {
-        console.warn(`[Failover] Quota excedida ou limite de taxa atingido para o modelo ${model}. Acionando próximo da cadeia...`);
+      if (isTransientError) {
+        console.warn(`[Failover] Erro temporário ou sobrecarga (${error.status || '503'}) no modelo ${model}. Acionando próximo da cadeia...`);
         continue; // Try next model in loop
       }
       
