@@ -51,6 +51,12 @@ interface APIResponse {
   grammarReport: string;
   structuralReport: string;
   consolidated: ConsolidatedResult;
+  modelLogs?: {
+    ocrAgent: string;
+    grammarAgent: string;
+    structuralAgent: string;
+    consolidatorAgent: string;
+  };
 }
 
 // Preset Data
@@ -617,7 +623,7 @@ export default function Home() {
                       </span>
                     </div>
                     <span className="agent-step-desc">
-                      Modelo: <code>gemini-2.5-flash</code>. Analisa o arquivo de imagem e extrai a
+                      Orquestração resiliente (iniciando em <code>gemini-3.5-flash</code>). Analisa o arquivo de imagem e extrai a
                       transcrição exata da caligrafia mantendo os desvios.
                     </span>
                   </div>
@@ -635,7 +641,7 @@ export default function Home() {
                       </span>
                     </div>
                     <span className="agent-step-desc">
-                      Modelos: <code>gemini-2.5-flash</code>. Dois agentes paralelos mapeiam erros
+                      Orquestração resiliente (iniciando em <code>gemini-3.5-flash</code>). Dois agentes paralelos mapeiam erros
                       gramaticais (microestrutura) e analisam a qualidade do conteúdo (macroestrutura).
                     </span>
                   </div>
@@ -653,7 +659,7 @@ export default function Home() {
                       </span>
                     </div>
                     <span className="agent-step-desc">
-                      Modelo: <code>gemini-2.5-flash</code> (Saída JSON). Recebe todos os relatórios
+                      Orquestração resiliente (iniciando em <code>gemini-3.5-flash</code> com Saída JSON). Recebe todos os relatórios
                       anteriores, calcula a nota Cebraspe final e estrutura o JSON.
                     </span>
                   </div>
@@ -768,6 +774,32 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
+                
+                {/* Model Logs Summary */}
+                {result.modelLogs && (
+                  <div
+                    style={{
+                      width: "100%",
+                      padding: "0.75rem 1rem",
+                      background: "rgba(255, 255, 255, 0.02)",
+                      border: "1px solid rgba(255, 255, 255, 0.05)",
+                      borderRadius: "8px",
+                      fontSize: "0.8rem",
+                      color: "var(--text-muted)",
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: "1rem",
+                      justifyContent: "space-between",
+                      marginTop: "1.5rem"
+                    }}
+                  >
+                    <span>🤖 <strong>Modelos Resolvidos no Failover:</strong></span>
+                    <span>OCR: <code>{result.modelLogs.ocrAgent}</code></span>
+                    <span>Gramática: <code>{result.modelLogs.grammarAgent}</code></span>
+                    <span>Estrutura: <code>{result.modelLogs.structuralAgent}</code></span>
+                    <span>Consolidador: <code>{result.modelLogs.consolidatorAgent}</code></span>
+                  </div>
+                )}
               </div>
 
               {/* Tabs detail section */}
