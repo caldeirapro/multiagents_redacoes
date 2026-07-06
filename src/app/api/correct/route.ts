@@ -38,6 +38,20 @@ async function generateContentWithFailover(
       return { response, usedModel: model };
     } catch (error: any) {
       lastError = error;
+      
+      // Check for invalid API key immediately to fail early
+      const errorStr = typeof error === 'object' ? JSON.stringify(error) : String(error);
+      const isApiKeyInvalid =
+        error.status === 400 ||
+        error.message?.includes("API key not valid") ||
+        error.message?.includes("API_KEY_INVALID") ||
+        errorStr.includes("API_KEY_INVALID") ||
+        errorStr.includes("API key not valid");
+
+      if (isApiKeyInvalid) {
+        throw new Error("Chave de API do Gemini inválida. Acesse as configurações (ícone de engrenagem no topo direito) e insira uma chave de API válida (geralmente começando com 'AIzaSy').");
+      }
+
       const isQuotaError =
         error.status === 429 ||
         error.message?.includes("429") ||
