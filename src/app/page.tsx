@@ -397,7 +397,7 @@ export default function Home() {
       {/* Header */}
       <header className="app-header">
         <div className="header-title-container">
-          <h1 className="header-title">Corretor Multi-Agente</h1>
+          <h1 className="header-title">Corretor de Redações Multi-Agente</h1>
           <span className="header-subtitle">
             Sistema Inteligente de Correção de Redações para Concursos Públicos
           </span>
@@ -411,10 +411,16 @@ export default function Home() {
           >
             <Settings size={20} />
           </button>
-          <div className="portfolio-badge">
+          <a
+            href="https://caldeirapro.github.io/portfolio/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="portfolio-badge"
+            style={{ textDecoration: "none" }}
+          >
             <Activity size={14} />
-            <span>AI Engineer Portfolio</span>
-          </div>
+            <span>Daniel Nunes - Portfolio</span>
+          </a>
         </div>
       </header>
 
@@ -443,7 +449,7 @@ export default function Home() {
             <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
               Sua chave de API é salva localmente no navegador (localStorage) e usada diretamente
               nas requisições. Deixe em branco se a variável de ambiente{" "}
-              <code>GEMINI_API_KEY</code> estiver configurada no servidor.
+              <b><code>GEMINI_API_KEY</code></b> estiver configurada no servidor.
             </p>
           </div>
         </div>
