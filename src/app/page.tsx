@@ -272,9 +272,14 @@ export default function Home() {
       return;
     }
 
-    const validTopics = topics.filter((t) => t.description.trim() !== "");
-    if (validTopics.length === 0) {
-      setError("Por favor, preencha pelo menos um tópico obrigatório para realizar a correção.");
+    if (topics.length === 0) {
+      setError("Por favor, adicione pelo menos um tópico obrigatório para realizar a correção.");
+      return;
+    }
+
+    const hasEmptyTopic = topics.some((t) => t.description.trim() === "");
+    if (hasEmptyTopic) {
+      setError("Por favor, preencha todos os tópicos cadastrados ou remova os campos vazios clicando no ícone de lixeira.");
       return;
     }
 
@@ -305,7 +310,7 @@ export default function Home() {
         body: JSON.stringify({
           image,
           theme,
-          topics: validTopics,
+          topics,
           apiKey: apiKey || undefined,
         }),
       });
@@ -326,7 +331,16 @@ export default function Home() {
       setActiveTab("interactive");
     } catch (e: any) {
       console.error(e);
-      setError(e.message || "Falha na conexão com o servidor.");
+      let errorMsg = e.message || "Falha na conexão com o servidor.";
+      if (
+        errorMsg.includes("DEADLINE_EXCEEDED") ||
+        errorMsg.includes("504") ||
+        errorMsg.includes("timeout") ||
+        errorMsg.includes("Timeout")
+      ) {
+        errorMsg = "O tempo limite de resposta foi esgotado (Timeout da Inteligência Artificial). Isso geralmente acontece se houver campos de tópicos vazios no formulário ou instabilidade momentânea na API do Gemini. Certifique-se de preencher o tema e a descrição de todos os tópicos e tente novamente.";
+      }
+      setError(errorMsg);
       setCurrentStep(0);
     } finally {
       setLoading(false);

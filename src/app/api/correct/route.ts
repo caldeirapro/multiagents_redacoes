@@ -129,6 +129,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const hasEmptyTopic = Array.isArray(topics) && topics.some((t: any) => {
+      if (typeof t === "object" && t !== null) {
+        return !t.description || t.description.trim() === "";
+      }
+      return typeof t === "string" && t.trim() === "";
+    });
+
+    if (hasEmptyTopic) {
+      return NextResponse.json(
+        { error: "Existem tópicos cadastrados com a descrição em branco. Por favor, preencha todos os tópicos adicionados ou remova os campos vazios." },
+        { status: 400 }
+      );
+    }
+
     // 1. Resolve API Key
     const apiKey = clientApiKey || process.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -287,8 +301,17 @@ Emita sua análise textual sob o título "RELATÓRIO ESTRUTURAL E TEMÁTICO".`,
       structuralModelUsed = structuralRes.usedModel;
     } catch (e: any) {
       console.error("Erro nos Agentes paralelos 2 e 3:", e);
+      let errorMsg = e.message || String(e);
+      if (
+        errorMsg.includes("DEADLINE_EXCEEDED") ||
+        errorMsg.includes("504") ||
+        errorMsg.includes("timeout") ||
+        errorMsg.includes("Timeout")
+      ) {
+        errorMsg = "Tempo limite de resposta esgotado pela API do Gemini. Verifique se preencheu o tema e os tópicos obrigatórios completamente ou tente novamente em instantes.";
+      }
       return NextResponse.json(
-        { error: `Falha na execução paralela dos Agentes 2 e 3 após failover: ${e.message || e}` },
+        { error: `Falha na execução dos Agentes de Correção: ${errorMsg}` },
         { status: 500 }
       );
     }
