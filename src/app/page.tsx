@@ -59,14 +59,28 @@ interface APIResponse {
   };
 }
 
+interface TopicInput {
+  description: string;
+  maxScore: string;
+}
+
 // Preset Data
 const SAMPLE_PRESET = {
   theme: "O papel da tecnologia na segurança pública do século XXI: desafios e possibilidades",
   topics: [
-    "O uso de inteligência artificial e análise de dados no combate ao crime organizado (Até 6,00 pts)",
-    "Mecanismos de controle e garantia dos direitos fundamentais frente à vigilância tecnológica (Até 7,00 pts)",
-    "Desafios de infraestrutura e capacitação das forças policiais para o uso de novas tecnologias (Até 7,00 pts)",
-  ],
+    {
+      description: "O uso de inteligência artificial e análise de dados no combate ao crime organizado",
+      maxScore: "6,00",
+    },
+    {
+      description: "Mecanismos de controle e garantia dos direitos fundamentais frente à vigilância tecnológica",
+      maxScore: "7,00",
+    },
+    {
+      description: "Desafios de infraestrutura e capacitação das forças policiais para o uso de novas tecnologias",
+      maxScore: "7,00",
+    },
+  ] as TopicInput[],
   text: `No século XXI, a inserção de novas tecnologias na segurança pública tem se mostrado indispensável. A utilização de inteligência artificial e de big data no combate a criminalidade permite que as forças policiais ajam de forma preventiva, antecipando-se aos delitos e desarticulando facções criminosas antes que as mesmas causem danos à sociedade.
 
 Entretanto, o uso dessas ferramentas digitais devem respeitar os limites constitucionais. É preciso que haja mecanismos rigorosos de controle para garantir os direitos fundamentais, evitando que o monitoramento tecnológico vire um instrumento de vigilância excessiva e arbitrária sobre os cidadãos. Portanto, a privacidade precisa ser preservada sob quaisquer circunstâncias.
@@ -79,7 +93,7 @@ export default function Home() {
   const [apiKey, setApiKey] = useState("");
   const [showSettings, setShowSettings] = useState(false);
   const [theme, setTheme] = useState(SAMPLE_PRESET.theme);
-  const [topics, setTopics] = useState<string[]>(SAMPLE_PRESET.topics);
+  const [topics, setTopics] = useState<TopicInput[]>(SAMPLE_PRESET.topics);
   const [image, setImage] = useState<string | null>(null);
   const [isSampleUsed, setIsSampleUsed] = useState(false);
 
@@ -236,14 +250,14 @@ export default function Home() {
   };
 
   // Topics management
-  const handleTopicChange = (index: number, value: string) => {
+  const handleTopicChange = (index: number, field: "description" | "maxScore", value: string) => {
     const newTopics = [...topics];
-    newTopics[index] = value;
+    newTopics[index] = { ...newTopics[index], [field]: value };
     setTopics(newTopics);
   };
 
   const addTopic = () => {
-    setTopics([...topics, ""]);
+    setTopics([...topics, { description: "", maxScore: "" }]);
   };
 
   const removeTopic = (index: number) => {
@@ -253,6 +267,17 @@ export default function Home() {
 
   // Execute Pipeline
   const runCorrection = async () => {
+    if (!theme || !theme.trim()) {
+      setError("Por favor, preencha o tema proposto da redação antes de prosseguir.");
+      return;
+    }
+
+    const validTopics = topics.filter((t) => t.description.trim() !== "");
+    if (validTopics.length === 0) {
+      setError("Por favor, preencha pelo menos um tópico obrigatório para realizar a correção.");
+      return;
+    }
+
     if (!image) {
       setError("Por favor, selecione ou gere uma imagem de redação.");
       return;
@@ -280,7 +305,7 @@ export default function Home() {
         body: JSON.stringify({
           image,
           theme,
-          topics: topics.filter((t) => t.trim() !== ""),
+          topics: validTopics,
           apiKey: apiKey || undefined,
         }),
       });
@@ -508,17 +533,26 @@ export default function Home() {
                 <Plus size={14} /> Adicionar
               </button>
             </label>
-            <div className="topics-list">
+            <div className="topics-list" style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
               {topics.map((topic, index) => (
-                <div key={index} className="topic-item">
+                <div key={index} className="topic-item" style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
                   <input
                     type="text"
                     className="input-field"
-                    value={topic}
-                    onChange={(e) => handleTopicChange(index, e.target.value)}
-                    placeholder={`Tópico ${index + 1} e pontuação máxima...`}
+                    style={{ flex: 1 }}
+                    value={topic.description}
+                    onChange={(e) => handleTopicChange(index, "description", e.target.value)}
+                    placeholder={`Descrição do Tópico ${index + 1}...`}
                   />
-                  <button onClick={() => removeTopic(index)} className="btn-icon" title="Remover">
+                  <input
+                    type="text"
+                    className="input-field"
+                    style={{ width: "95px", textAlign: "center" }}
+                    value={topic.maxScore}
+                    onChange={(e) => handleTopicChange(index, "maxScore", e.target.value)}
+                    placeholder="Nota máx."
+                  />
+                  <button onClick={() => removeTopic(index)} className="btn-icon" title="Remover" style={{ flexShrink: 0 }}>
                     <Trash2 size={16} />
                   </button>
                 </div>

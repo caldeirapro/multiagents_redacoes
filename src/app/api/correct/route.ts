@@ -104,6 +104,31 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { image, theme, topics, apiKey: clientApiKey } = body;
 
+    // Validate Theme
+    if (!theme || !theme.trim()) {
+      return NextResponse.json(
+        { error: "O tema da redação é obrigatório e não foi preenchido. Por favor, preencha o tema proposto da prova." },
+        { status: 400 }
+      );
+    }
+
+    // Validate Topics
+    const validTopics = Array.isArray(topics)
+      ? topics.filter((t: any) => {
+          if (typeof t === "object" && t !== null) {
+            return t.description && t.description.trim() !== "";
+          }
+          return typeof t === "string" && t.trim() !== "";
+        })
+      : [];
+
+    if (validTopics.length === 0) {
+      return NextResponse.json(
+        { error: "A redação precisa de pelo menos um tópico avaliativo para ser corrigida. Por favor, adicione e preencha os tópicos da prova discursiva." },
+        { status: 400 }
+      );
+    }
+
     // 1. Resolve API Key
     const apiKey = clientApiKey || process.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -208,7 +233,13 @@ Ao final da sua análise, emita um relatório textual detalhado sob o título "R
     });
 
     const topicsText = Array.isArray(topics)
-      ? topics.map((t, i) => `${i + 1}. ${t}`).join("\n")
+      ? topics.map((t, i) => {
+          if (typeof t === "object" && t !== null) {
+            const maxScoreStr = t.maxScore ? ` (Nota máxima: ${t.maxScore} pontos)` : "";
+            return `${i + 1}. ${t.description}${maxScoreStr}`;
+          }
+          return `${i + 1}. ${t}`;
+        }).join("\n")
       : topics || "Nenhum tópico fornecido";
 
     const agent3Promise = generateContentWithFailover(ai, {
